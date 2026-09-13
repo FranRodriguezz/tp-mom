@@ -140,3 +140,36 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
             raise MessageMiddlewareDisconnectedError(f"Failed to send message to RabbitMQ server at {self._host}: {e}") from e
         except Exception as e:
             raise MessageMiddlewareMessageError(f"Failed to send message to RabbitMQ server at {self._host}: {e}") from e
+
+    def start_consuming(self, on_message_callback):
+        def _on_message(channel, method, properties, body):
+
+            def ack():
+                channel.basic_ack(delivery_tag=method.delivery_tag)
+
+            def nack():
+                requeue = True
+                channel.basic_nack(delivery_tag=method.delivery_tag, requeue=requeue)
+
+            on_message_callback(body, ack, nack)
+
+        try:
+            self._channel.basic_consume(
+                queue=self._queue_name,
+                on_message_callback=_on_message,
+                auto_ack=False
+            )
+            self._is_consuming = True
+            self._channel.start_consuming()
+        except pika.exceptions.AMQPConnectionError as e:
+            raise MessageMiddlewareDisconnectedError(f"Failed to consume messages from RabbitMQ server at {self._host}: {e}") from e
+        except Exception as e:
+            raise MessageMiddlewareMessageError(f"Failed to consume messages from RabbitMQ server at {self._host}: {e}") from e
+
+    def stop_consuming(self):
+        if self._is_consuming:
+            try:
+                self._channel.stop_consuming()
+                self._is_consuming = False
+            except Exception as e:
+                raise MessageMiddlewareDisconnectedError(f"Failed to stop consuming messages from RabbitMQ server at {self._host}: {e}") from e
