@@ -119,3 +119,24 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
                 self._channel.queue_bind(exchange=self._exchange_name, queue=self._queue_name, routing_key=key)
         except Exception as e:
             raise MessageMiddlewareDisconnectedError(f"Failed to bind queue to exchange for RabbitMQ server at {self._host}: {e}") from e
+
+    def close(self):
+        try:
+            if self._channel.is_open:
+                self._channel.close()
+            if self._connection.is_open:
+                self._connection.close()
+        except Exception as e:
+            raise MessageMiddlewareCloseError(f"Failed to close RabbitMQ connection: {e}") from e
+
+    def send(self, message):
+        try:
+            self._channel.basic_publish(
+                exchange=self._exchange_name,
+                routing_key=self._routing_keys[0],
+                body=message
+            )
+        except pika.exceptions.AMQPConnectionError as e:
+            raise MessageMiddlewareDisconnectedError(f"Failed to send message to RabbitMQ server at {self._host}: {e}") from e
+        except Exception as e:
+            raise MessageMiddlewareMessageError(f"Failed to send message to RabbitMQ server at {self._host}: {e}") from e
