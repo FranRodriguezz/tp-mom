@@ -85,6 +85,37 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
                 raise MessageMiddlewareDisconnectedError(f"Failed to stop consuming messages from RabbitMQ server at {self._host}: {e}") from e
 
 class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
-    
+
     def __init__(self, host, exchange_name, routing_keys):
-        pass
+        self._host = host
+        self._exchange_name = exchange_name
+        self._routing_keys = routing_keys
+        self._is_consuming = False
+
+        try:
+            self._connection = pika.BlockingConnection(pika.ConnectionParameters(host=self._host))
+        except Exception as e:
+            raise MessageMiddlewareDisconnectedError(f"Failed to connect to RabbitMQ server at {self._host}: {e}") from e
+
+        try:
+            self._channel = self._connection.channel()
+        except Exception as e:
+            raise MessageMiddlewareDisconnectedError(f"Failed to create channel for RabbitMQ server at {self._host}: {e}") from e
+
+        try :
+            self._channel.exchange_declare(exchange=self._exchange_name, exchange_type='direct', durable=True)
+        except Exception as e:
+            raise MessageMiddlewareDisconnectedError(f"Failed to declare exchange for RabbitMQ server at {self._host}: {e}") from e
+
+        try:
+            result = self._channel.queue_declare(queue='', exclusive=True)
+            self._queue_name = result.method.queue
+        except Exception as e:
+            raise MessageMiddlewareDisconnectedError(f"Failed to declare exclusive queue for RabbitMQ server at {self._host}: {e}") from e
+        
+
+        try:
+            for key in self._routing_keys:
+                self._channel.queue_bind(exchange=self._exchange_name, queue=self._queue_name, routing_key=key)
+        except Exception as e:
+            raise MessageMiddlewareDisconnectedError(f"Failed to bind queue to exchange for RabbitMQ server at {self._host}: {e}") from e
