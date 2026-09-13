@@ -1,7 +1,7 @@
 import pika
 import random
 import string
-from .middleware import MessageMiddlewareCloseError, MessageMiddlewareDisconnectedError, MessageMiddlewareQueue, MessageMiddlewareExchange
+from .middleware import MessageMiddlewareCloseError, MessageMiddlewareDisconnectedError, MessageMiddlewareMessageError, MessageMiddlewareQueue, MessageMiddlewareExchange
 
 class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
 
@@ -34,6 +34,19 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
                 self._connection.close()
         except Exception as e:
             raise MessageMiddlewareCloseError(f"Failed to close RabbitMQ connection: {e}") from e
+
+    def send(self, message):
+        try:
+            self._channel.basic_publish(
+                exchange='',
+                routing_key=self._queue_name,
+                body=message,
+                properties=pika.BasicProperties(delivery_mode=2)
+            )
+        except pika.exceptions.AMQPConnectionError as e:
+            raise MessageMiddlewareDisconnectedError(f"Failed to send message to RabbitMQ server at {self._host}: {e}") from e
+        except Exception as e:
+            raise MessageMiddlewareMessageError(f"Failed to send message to RabbitMQ server at {self._host}: {e}") from e
 
 class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
     
