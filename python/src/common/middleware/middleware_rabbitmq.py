@@ -1,7 +1,7 @@
 import pika
 import random
 import string
-from .middleware import MessageMiddlewareDisconnectedError, MessageMiddlewareQueue, MessageMiddlewareExchange
+from .middleware import MessageMiddlewareCloseError, MessageMiddlewareDisconnectedError, MessageMiddlewareQueue, MessageMiddlewareExchange
 
 class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
 
@@ -25,7 +25,15 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
             raise MessageMiddlewareDisconnectedError(f"Failed to declare queue for RabbitMQ server at {self._host}: {e}") from e
 
         self._is_consuming = False
-        
+
+    def close(self):
+        try:
+            if self._channel.is_open:
+                self._channel.close()
+            if self._connection.is_open:
+                self._connection.close()
+        except Exception as e:
+            raise MessageMiddlewareCloseError(f"Failed to close RabbitMQ connection: {e}") from e
 
 class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
     
