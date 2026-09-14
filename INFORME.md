@@ -109,3 +109,6 @@ un fallo de procesamiento por sobre el riesgo de reprocesamiento.
 
 ## Fixes de última hora (validación contra `make test`)
 
+Los 19 tests provistos por la cátedra (13 de `test_queue.py`, 6 de
+`test_exchange.py`) pasaron sin necesidad de ajustes adicionales al diseño
+descrito en las secciones anteriores.
