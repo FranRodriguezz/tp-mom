@@ -1,7 +1,14 @@
 import pika
 import random
 import string
-from .middleware import MessageMiddlewareCloseError, MessageMiddlewareDisconnectedError, MessageMiddlewareMessageError, MessageMiddlewareQueue, MessageMiddlewareExchange
+from .middleware import (
+    MessageMiddlewareCloseError,
+    MessageMiddlewareDisconnectedError,
+    MessageMiddlewareMessageError,
+    MessageMiddlewareQueue,
+    MessageMiddlewareExchange,
+)
+
 
 class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
 
@@ -14,19 +21,27 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
         self._queue_name = queue_name
 
         try:
-            self._connection = pika.BlockingConnection(pika.ConnectionParameters(host=self._host))
+            self._connection = pika.BlockingConnection(
+                pika.ConnectionParameters(host=self._host)
+            )
         except Exception as e:
-            raise MessageMiddlewareDisconnectedError(f"Failed to connect to RabbitMQ server at {self._host}: {e}") from e
-        
+            raise MessageMiddlewareDisconnectedError(
+                f"Failed to connect to RabbitMQ server at {self._host}: {e}"
+            ) from e
+
         try:
             self._channel = self._connection.channel()
         except Exception as e:
-            raise MessageMiddlewareDisconnectedError(f"Failed to create channel for RabbitMQ server at {self._host}: {e}") from e
+            raise MessageMiddlewareDisconnectedError(
+                f"Failed to create channel for RabbitMQ server at {self._host}: {e}"
+            ) from e
 
         try:
             self._channel.queue_declare(queue=self._queue_name, durable=True)
         except Exception as e:
-            raise MessageMiddlewareDisconnectedError(f"Failed to declare queue for RabbitMQ server at {self._host}: {e}") from e
+            raise MessageMiddlewareDisconnectedError(
+                f"Failed to declare queue for RabbitMQ server at {self._host}: {e}"
+            ) from e
 
         self._is_consuming = False
 
@@ -42,7 +57,9 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
             if self._connection.is_open:
                 self._connection.close()
         except Exception as e:
-            raise MessageMiddlewareCloseError(f"Failed to close RabbitMQ connection: {e}") from e
+            raise MessageMiddlewareCloseError(
+                f"Failed to close RabbitMQ connection: {e}"
+            ) from e
 
     def send(self, message):
         """
@@ -52,15 +69,19 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
         """
         try:
             self._channel.basic_publish(
-                exchange='',
+                exchange="",
                 routing_key=self._queue_name,
                 body=message,
-                properties=pika.BasicProperties(delivery_mode=2)
+                properties=pika.BasicProperties(delivery_mode=2),
             )
         except pika.exceptions.AMQPConnectionError as e:
-            raise MessageMiddlewareDisconnectedError(f"Failed to send message to RabbitMQ server at {self._host}: {e}") from e
+            raise MessageMiddlewareDisconnectedError(
+                f"Failed to send message to RabbitMQ server at {self._host}: {e}"
+            ) from e
         except Exception as e:
-            raise MessageMiddlewareMessageError(f"Failed to send message to RabbitMQ server at {self._host}: {e}") from e
+            raise MessageMiddlewareMessageError(
+                f"Failed to send message to RabbitMQ server at {self._host}: {e}"
+            ) from e
 
     def start_consuming(self, on_message_callback):
         """
@@ -73,6 +94,7 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
         This method blocks the current thread until stop_consuming()
         is invoked (typically from within the callback itself).
         """
+
         def _on_message(channel, method, properties, body):
 
             def ack():
@@ -86,9 +108,7 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
 
         try:
             self._channel.basic_consume(
-                queue=self._queue_name,
-                on_message_callback=_on_message,
-                auto_ack=False
+                queue=self._queue_name, on_message_callback=_on_message, auto_ack=False
             )
 
             self._is_consuming = True
@@ -96,9 +116,13 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
             self._channel.start_consuming()
 
         except pika.exceptions.AMQPConnectionError as e:
-            raise MessageMiddlewareDisconnectedError(f"Failed to start consuming messages from RabbitMQ server at {self._host}: {e}") from e
+            raise MessageMiddlewareDisconnectedError(
+                f"Failed to start consuming messages from RabbitMQ server at {self._host}: {e}"
+            ) from e
         except Exception as e:
-            raise MessageMiddlewareMessageError(f"Failed to start consuming messages from RabbitMQ server at {self._host}: {e}") from e
+            raise MessageMiddlewareMessageError(
+                f"Failed to start consuming messages from RabbitMQ server at {self._host}: {e}"
+            ) from e
 
     def stop_consuming(self):
         """
@@ -110,7 +134,10 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
                 self._channel.stop_consuming()
                 self._is_consuming = False
             except Exception as e:
-                raise MessageMiddlewareDisconnectedError(f"Failed to stop consuming messages from RabbitMQ server at {self._host}: {e}") from e
+                raise MessageMiddlewareDisconnectedError(
+                    f"Failed to stop consuming messages from RabbitMQ server at {self._host}: {e}"
+                ) from e
+
 
 class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
 
@@ -127,32 +154,49 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
         self._is_consuming = False
 
         try:
-            self._connection = pika.BlockingConnection(pika.ConnectionParameters(host=self._host))
+            self._connection = pika.BlockingConnection(
+                pika.ConnectionParameters(host=self._host)
+            )
         except Exception as e:
-            raise MessageMiddlewareDisconnectedError(f"Failed to connect to RabbitMQ server at {self._host}: {e}") from e
+            raise MessageMiddlewareDisconnectedError(
+                f"Failed to connect to RabbitMQ server at {self._host}: {e}"
+            ) from e
 
         try:
             self._channel = self._connection.channel()
         except Exception as e:
-            raise MessageMiddlewareDisconnectedError(f"Failed to create channel for RabbitMQ server at {self._host}: {e}") from e
-
-        try :
-            self._channel.exchange_declare(exchange=self._exchange_name, exchange_type='direct', durable=True)
-        except Exception as e:
-            raise MessageMiddlewareDisconnectedError(f"Failed to declare exchange for RabbitMQ server at {self._host}: {e}") from e
+            raise MessageMiddlewareDisconnectedError(
+                f"Failed to create channel for RabbitMQ server at {self._host}: {e}"
+            ) from e
 
         try:
-            result = self._channel.queue_declare(queue='', exclusive=True)
+            self._channel.exchange_declare(
+                exchange=self._exchange_name, exchange_type="direct", durable=True
+            )
+        except Exception as e:
+            raise MessageMiddlewareDisconnectedError(
+                f"Failed to declare exchange for RabbitMQ server at {self._host}: {e}"
+            ) from e
+
+        try:
+            result = self._channel.queue_declare(queue="", exclusive=True)
             self._queue_name = result.method.queue
         except Exception as e:
-            raise MessageMiddlewareDisconnectedError(f"Failed to declare exclusive queue for RabbitMQ server at {self._host}: {e}") from e
-        
+            raise MessageMiddlewareDisconnectedError(
+                f"Failed to declare exclusive queue for RabbitMQ server at {self._host}: {e}"
+            ) from e
 
         try:
             for key in self._routing_keys:
-                self._channel.queue_bind(exchange=self._exchange_name, queue=self._queue_name, routing_key=key)
+                self._channel.queue_bind(
+                    exchange=self._exchange_name,
+                    queue=self._queue_name,
+                    routing_key=key,
+                )
         except Exception as e:
-            raise MessageMiddlewareDisconnectedError(f"Failed to bind queue to exchange for RabbitMQ server at {self._host}: {e}") from e
+            raise MessageMiddlewareDisconnectedError(
+                f"Failed to bind queue to exchange for RabbitMQ server at {self._host}: {e}"
+            ) from e
 
     def close(self):
         """
@@ -166,7 +210,9 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
             if self._connection.is_open:
                 self._connection.close()
         except Exception as e:
-            raise MessageMiddlewareCloseError(f"Failed to close RabbitMQ connection: {e}") from e
+            raise MessageMiddlewareCloseError(
+                f"Failed to close RabbitMQ connection: {e}"
+            ) from e
 
     def send(self, message):
         """
@@ -178,12 +224,16 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
             self._channel.basic_publish(
                 exchange=self._exchange_name,
                 routing_key=self._routing_keys[0],
-                body=message
+                body=message,
             )
         except pika.exceptions.AMQPConnectionError as e:
-            raise MessageMiddlewareDisconnectedError(f"Failed to send message to RabbitMQ server at {self._host}: {e}") from e
+            raise MessageMiddlewareDisconnectedError(
+                f"Failed to send message to RabbitMQ server at {self._host}: {e}"
+            ) from e
         except Exception as e:
-            raise MessageMiddlewareMessageError(f"Failed to send message to RabbitMQ server at {self._host}: {e}") from e
+            raise MessageMiddlewareMessageError(
+                f"Failed to send message to RabbitMQ server at {self._host}: {e}"
+            ) from e
 
     def start_consuming(self, on_message_callback):
         """
@@ -194,6 +244,7 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
         This method blocks the current thread until stop_consuming()
         is invoked (typically from within the callback itself).
         """
+
         def _on_message(channel, method, properties, body):
 
             def ack():
@@ -207,16 +258,18 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
 
         try:
             self._channel.basic_consume(
-                queue=self._queue_name,
-                on_message_callback=_on_message,
-                auto_ack=False
+                queue=self._queue_name, on_message_callback=_on_message, auto_ack=False
             )
             self._is_consuming = True
             self._channel.start_consuming()
         except pika.exceptions.AMQPConnectionError as e:
-            raise MessageMiddlewareDisconnectedError(f"Failed to consume messages from RabbitMQ server at {self._host}: {e}") from e
+            raise MessageMiddlewareDisconnectedError(
+                f"Failed to consume messages from RabbitMQ server at {self._host}: {e}"
+            ) from e
         except Exception as e:
-            raise MessageMiddlewareMessageError(f"Failed to consume messages from RabbitMQ server at {self._host}: {e}") from e
+            raise MessageMiddlewareMessageError(
+                f"Failed to consume messages from RabbitMQ server at {self._host}: {e}"
+            ) from e
 
     def stop_consuming(self):
         """
@@ -228,4 +281,6 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
                 self._channel.stop_consuming()
                 self._is_consuming = False
             except Exception as e:
-                raise MessageMiddlewareDisconnectedError(f"Failed to stop consuming messages from RabbitMQ server at {self._host}: {e}") from e
+                raise MessageMiddlewareDisconnectedError(
+                    f"Failed to stop consuming messages from RabbitMQ server at {self._host}: {e}"
+                ) from e
