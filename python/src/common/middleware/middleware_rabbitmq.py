@@ -9,15 +9,6 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
         """
         Initializes the connection to the RabbitMQ broker and declares
         (or reuses) a durable queue with the given name.
-
-        Args:
-            host (str): address of the RabbitMQ server.
-            queue_name (str): name of the queue to use.
-
-        Raises:
-            MessageMiddlewareDisconnectedError: if the connection cannot
-                be established, the channel cannot be created, or the
-                queue cannot be declared.
         """
         self._host = host
         self._queue_name = queue_name
@@ -44,10 +35,6 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
         Closes the channel and the connection to RabbitMQ, if open.
         Idempotent: calling close() more than once has no additional
         effect and does not raise.
-
-        Raises:
-            MessageMiddlewareCloseError: if an internal error occurs
-                while closing the channel or the connection.
         """
         try:
             if self._channel.is_open:
@@ -62,15 +49,6 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
         Publishes a message to the queue, using RabbitMQ's default
         exchange (routing_key = queue name). The message is marked
         as persistent (delivery_mode=2).
-
-        Args:
-            message (bytes): body of the message to send.
-
-        Raises:
-            MessageMiddlewareDisconnectedError: if the connection to
-                the middleware was lost.
-            MessageMiddlewareMessageError: if an internal error occurs
-                while publishing the message.
         """
         try:
             self._channel.basic_publish(
@@ -94,16 +72,6 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
 
         This method blocks the current thread until stop_consuming()
         is invoked (typically from within the callback itself).
-
-        Args:
-            on_message_callback (Callable[[bytes, Callable, Callable], None]):
-                function to invoke for each message received.
-
-        Raises:
-            MessageMiddlewareDisconnectedError: if the connection to
-                the middleware was lost.
-            MessageMiddlewareMessageError: if an internal error occurs
-                while consuming messages.
         """
         def _on_message(channel, method, properties, body):
 
@@ -136,10 +104,6 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
         """
         Stops consuming messages started by start_consuming().
         If it was not consuming, has no effect and does not raise.
-
-        Raises:
-            MessageMiddlewareDisconnectedError: if the connection to
-                the middleware was lost while trying to stop consuming.
         """
         if self._is_consuming:
             try:
@@ -156,19 +120,6 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
         direct exchange with the given name, and creates the instance's
         own anonymous, exclusive queue, bound to each of the given
         routing_keys.
-
-        Args:
-            host (str): address of the RabbitMQ server.
-            exchange_name (str): name of the exchange to use.
-            routing_keys (list[str]): routing keys this instance
-                subscribes to (consuming) or publishes to (sending,
-                using the first one in the list).
-
-        Raises:
-            MessageMiddlewareDisconnectedError: if the connection cannot
-                be established, the channel cannot be created, the
-                exchange or exclusive queue cannot be declared, or the
-                bindings cannot be created.
         """
         self._host = host
         self._exchange_name = exchange_name
@@ -208,10 +159,6 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
         Closes the channel and the connection to RabbitMQ, if open.
         Since the queue is exclusive, RabbitMQ automatically deletes
         it once the connection that created it is closed.
-
-        Raises:
-            MessageMiddlewareCloseError: if an internal error occurs
-                while closing the channel or the connection.
         """
         try:
             if self._channel.is_open:
@@ -226,15 +173,6 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
         Publishes a message to the exchange, using the single routing
         key this instance was initialized with (intended for producer
         usage, with a list containing a single routing key).
-
-        Args:
-            message (bytes): body of the message to send.
-
-        Raises:
-            MessageMiddlewareDisconnectedError: if the connection to
-                the middleware was lost.
-            MessageMiddlewareMessageError: if an internal error occurs
-                while publishing the message.
         """
         try:
             self._channel.basic_publish(
@@ -255,16 +193,6 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
 
         This method blocks the current thread until stop_consuming()
         is invoked (typically from within the callback itself).
-
-        Args:
-            on_message_callback (Callable[[bytes, Callable, Callable], None]):
-                function to invoke for each message received.
-
-        Raises:
-            MessageMiddlewareDisconnectedError: if the connection to
-                the middleware was lost.
-            MessageMiddlewareMessageError: if an internal error occurs
-                while consuming messages.
         """
         def _on_message(channel, method, properties, body):
 
@@ -294,10 +222,6 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
         """
         Stops consuming messages started by start_consuming().
         If it was not consuming, has no effect and does not raise.
-
-        Raises:
-            MessageMiddlewareDisconnectedError: if the connection to
-                the middleware was lost while trying to stop consuming.
         """
         if self._is_consuming:
             try:
